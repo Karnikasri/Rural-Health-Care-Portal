@@ -73,7 +73,7 @@ app.post(
       res.json({ answer: text });
     } catch (err) {
       console.error("Gemini error:", err?.message ?? err);
-      res.status(500).json({ error: "AI analysis failed" });
+      res.status(500).json({ error: "AI service is temporarily unavailable. Please try again after some time" });
     }
   }
 );
