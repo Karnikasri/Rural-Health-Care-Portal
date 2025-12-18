@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rural Health Care - Book Appointment</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="book">
+    <!-- Top bar -->
+    <header class="top-bar">
+      <div class="logo-title">
+        <img src="logo.png" class="logo-img" alt="Logo" />
+        <span class="site-title">
+          <span class="site-title-rural">Rural</span> Health Care
+        </span>
+      </div>
+      <div class="top-right">
+        <nav class="nav-links">
+          <a id="nav-home" href="#" class="nav-link">Home</a>
+          <a id="nav-appointments" href="#" class="nav-link active">Appointments</a>
+          <a href="index.html">Logout</a>
+        </nav>
+        <div class="user-menu">
+          <button class="user-icon-btn">
+            <span class="user-initials">PT</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Book page -->
+    <div class="book-page">
+      <h1>Book an Appointment</h1>
+      <p class="muted">
+        Search for a doctor by specialization or name and choose a convenient
+        time slot.
+      </p>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label for="specialization-filter" class="field-label">
+            Specialization
+          </label>
+          <select
+            id="specialization-filter"
+            class="select-input"
+            onchange="filterBySpecialization()"
+          >
+            <option>All Specializations</option>
+            <option>General Physician</option>
+            <option>Cardiologist</option>
+            <option>Dermatologist</option>
+            <option>Pediatrician</option>
+            <option>ENT Specialist</option>
+            <option>Gynecologist</option>
+          </select>
+        </div>
+
+        <div class="filter-group" style="flex: 1">
+          <label for="doctor-search" class="field-label">Search Doctor</label>
+          <input
+            id="doctor-search"
+            type="text"
+            class="text-input"
+            placeholder="Type doctor name..."
+            oninput="filterDoctors()"
+          />
+        </div>
+      </div>
+
+      <!-- list filled from backend -->
+      <div class="doctor-list"></div>
+    </div>
+
+    <!-- Booking modal -->
+    <div id="modal" class="modal-backdrop" style="display: none">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Confirm Appointment</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <p>You are booking an appointment with:</p>
+          <p><strong id="modal-doctor">Doctor Name</strong></p>
+          <!-- hidden doctor id for backend -->
+          <input type="hidden" id="modal-doctor-id" />
+
+          <div class="form-group">
+            <label for="appointment-date" class="field-label">Date</label>
+            <input
+              type="date"
+              id="appointment-date"
+              class="text-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="appointment-time" class="field-label">Time</label>
+            <input
+              type="time"
+              id="appointment-time"
+              class="text-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="appointment-duration" class="field-label">
+              Duration
+            </label>
+            <select
+              id="appointment-duration"
+              class="select-input"
+            >
+              <option value="30">30 minutes</option>
+              <option value="60">60 minutes</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="appointment-reason" class="field-label">
+              Reason for visit (optional)
+            </label>
+            <textarea
+              id="appointment-reason"
+              rows="3"
+              class="text-input"
+              placeholder="Short description of your problem"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="secondary-btn" onclick="closeModal()">
+            Cancel
+          </button>
+          <button class="primary-btn" onclick="confirmBooking()">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+      // Load doctors from backend instead of hard-coded list
+      async function loadDoctorsForBooking() {
+        try {
+          const res = await fetch("/api/admin/doctors");
+          if (!res.ok) {
+            alert("Could not load doctors.");
+            return;
+          }
+          const doctors = await res.json();
+
+          const list = document.querySelector(".doctor-list");
+          list.innerHTML = "";
+
+          doctors.forEach((doc) => {
+            const card = document.createElement("div");
+            card.className = "doctor-card";
+            card.setAttribute("data-name", doc.name.toLowerCase());
+            card.setAttribute("data-specialization", doc.specialization);
+
+            card.innerHTML = `
+              <div class="doctor-info">
+                <h3>${doc.name}</h3>
+                <p class="muted">${doc.specialization}</p>
+                <p class="muted small">${doc.hospital}</p>
+              </div>
+              <div class="doctor-actions">
+                <button
+                  class="primary-btn"
+                  onclick="openBookingModal('${doc.name.replace(/'/g, "\\'")}', '${doc.doctorId}')"
+                >
+                  Book
+                </button>
+              </div>
+            `;
+            list.appendChild(card);
+          });
+        } catch (err) {
+          console.error(err);
+          alert("Error loading doctors.");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadDoctorsForBooking);
+    </script>
+  </body>
+</html>

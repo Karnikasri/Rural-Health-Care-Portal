@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rural Health Care - Edit Prescription</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="light-bg">
+    <header class="top-bar">
+      <div class="logo-title">
+        <img src="logo.png" alt="Rural Health Care logo" class="logo-img" />
+        <span class="site-title">
+          <span class="site-title-rural">Rural</span> Health Care
+        </span>
+      </div>
+      <div class="top-right">
+        <nav class="nav-links">
+          <a id="edit-pres-dashboard-link" href="#">Dashboard</a>
+          <a href="index.html">Logout</a>
+        </nav>
+        <div class="user-menu">
+          <button class="user-icon-btn">
+            <span class="user-initials">DR</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="prescription-page">
+      <div class="prescription-header-row">
+        <div>
+          <h1 class="prescription-title">Edit Prescription</h1>
+          <p class="muted" id="edit-prescription-header-text">
+            Patient: — | Date: —
+          </p>
+        </div>
+      </div>
+
+      <!-- read-only view as context -->
+      <div class="prescription-grid">
+        <section class="card remarks-card">
+          <h2>Current Remarks</h2>
+          <p class="prescription-text" id="edit-prescription-remarks-view">
+            Loading...
+          </p>
+        </section>
+
+        <section class="card meds-card">
+          <h2>Current Medication</h2>
+          <table class="meds-table">
+            <thead>
+              <tr>
+                <th>Medicine Name</th>
+                <th>Dosage</th>
+                <th>Instructions</th>
+              </tr>
+            </thead>
+            <tbody id="edit-meds-view-body"></tbody>
+          </table>
+        </section>
+      </div>
+
+      <!-- editable area -->
+      <section class="card edit-prescription-card">
+        <h2>Update Prescription (Doctor)</h2>
+
+        <label class="field-label">Doctor's Remarks</label>
+        <textarea
+          id="edit-remarks"
+          class="text-input"
+          rows="4"
+          placeholder="Enter overall assessment and advice"
+        ></textarea>
+
+        <h3 style="margin-top: 16px">Medicines</h3>
+        <p class="muted small">
+          Fill one medicine per line; leave unused lines empty.
+        </p>
+
+        <div id="edit-meds">
+          <div class="med-row">
+            <input placeholder="Medicine name" class="text-input med-name" />
+            <input placeholder="Dosage" class="text-input med-dosage" />
+            <input
+              placeholder="Instructions"
+              class="text-input med-inst"
+            />
+          </div>
+          <div class="med-row">
+            <input placeholder="Medicine name" class="text-input med-name" />
+            <input placeholder="Dosage" class="text-input med-dosage" />
+            <input
+              placeholder="Instructions"
+              class="text-input med-inst"
+            />
+          </div>
+          <div class="med-row">
+            <input placeholder="Medicine name" class="text-input med-name" />
+            <input placeholder="Dosage" class="text-input med-dosage" />
+            <input
+              placeholder="Instructions"
+              class="text-input med-inst"
+            />
+          </div>
+          <div class="med-row">
+            <input placeholder="Medicine name" class="text-input med-name" />
+            <input placeholder="Dosage" class="text-input med-dosage" />
+            <input
+              placeholder="Instructions"
+              class="text-input med-inst"
+            />
+          </div>
+        </div>
+
+        <button class="primary-btn" id="save-pres-btn" style="margin-top: 16px">
+          Save Prescription
+        </button>
+      </section>
+    </main>
+
+    <script>
+      function getQueryParam(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+      }
+
+      function getAppointmentIdFromQuery() {
+        return getQueryParam("appointmentId");
+      }
+
+      function getFromDoctorId() {
+        return getQueryParam("fromDoctorId") || "D001";
+      }
+
+      async function loadPrescriptionForEdit() {
+        const apptId = getAppointmentIdFromQuery();
+        const headerEl = document.getElementById(
+          "edit-prescription-header-text"
+        );
+        const remarksView = document.getElementById(
+          "edit-prescription-remarks-view"
+        );
+        const medsBody = document.getElementById("edit-meds-view-body");
+
+        medsBody.innerHTML = "";
+        remarksView.textContent = "Loading...";
+
+        if (!apptId) {
+          remarksView.textContent = "No appointment selected.";
+          headerEl.textContent = "Patient: — | Date: —";
+          return;
+        }
+
+        try {
+          const presRes = await fetch(
+            `/api/prescriptions/by-appointment/${apptId}`
+          );
+
+          let pres = null;
+          if (presRes.ok) pres = await presRes.json();
+
+          if (!pres) {
+            const apptRes = await fetch(`/api/appointments/${apptId}`);
+            if (!apptRes.ok) {
+              remarksView.textContent =
+                "No prescription found for this appointment.";
+              headerEl.textContent = "Patient: — | Date: —";
+            } else {
+              const appt = await apptRes.json();
+              headerEl.textContent = `Patient: ${
+                appt.patientName || "-"
+              } | Date: ${appt.date || "-"}`;
+              remarksView.textContent =
+                "No prescription found for this appointment.";
+            }
+            clearEditMeds();
+            return;
+          }
+
+          headerEl.textContent = `Patient: ${
+            pres.patientName || "-"
+          } | Date: ${
+            pres.date ||
+            new Date(pres.createdAt || Date.now()).toISOString().slice(0, 10)
+          }`;
+
+          remarksView.textContent =
+            pres.remarks ||
+            "No detailed remarks entered for this visit.";
+
+          const meds = pres.medicines || [];
+          if (!meds.length) {
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td colspan='3' class='muted'>No medicines recorded.</td>";
+            medsBody.appendChild(tr);
+          } else {
+            meds.forEach((m) => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${m.name || "-"}</td>
+                <td>${m.dosage || "-"}</td>
+                <td>${m.instructions || "-"}</td>
+              `;
+              medsBody.appendChild(tr);
+            });
+          }
+
+          document.getElementById("edit-remarks").value = pres.remarks || "";
+
+          clearEditMeds();
+          const names = document.querySelectorAll(".med-name");
+          const doses = document.querySelectorAll(".med-dosage");
+          const insts = document.querySelectorAll(".med-inst");
+          meds.forEach((m, i) => {
+            if (names[i]) {
+              names[i].value = m.name || "";
+              doses[i].value = m.dosage || "";
+              insts[i].value = m.instructions || "";
+            }
+          });
+        } catch (e) {
+          console.error(e);
+          remarksView.textContent = "Error loading prescription.";
+        }
+      }
+
+      function clearEditMeds() {
+        document.querySelectorAll(".med-name").forEach((i) => (i.value = ""));
+        document.querySelectorAll(".med-dosage").forEach(
+          (i) => (i.value = "")
+        );
+        document.querySelectorAll(".med-inst").forEach((i) => (i.value = ""));
+      }
+
+      async function savePrescription() {
+        const apptId = getAppointmentIdFromQuery();
+        if (!apptId) {
+          alert("No appointment selected.");
+          return;
+        }
+
+        try {
+          const apptRes = await fetch(`/api/appointments/${apptId}`);
+          if (!apptRes.ok) {
+            alert("Could not load appointment details.");
+            return;
+          }
+          const appt = await apptRes.json();
+
+          const remarks = document
+            .getElementById("edit-remarks")
+            .value.trim();
+
+          const names = document.querySelectorAll(".med-name");
+          const doses = document.querySelectorAll(".med-dosage");
+          const insts = document.querySelectorAll(".med-inst");
+
+          const medicines = [];
+          for (let i = 0; i < names.length; i++) {
+            const name = names[i].value.trim();
+            const dosage = doses[i].value.trim();
+            const instructions = insts[i].value.trim();
+            if (name || dosage || instructions) {
+              medicines.push({ name, dosage, instructions });
+            }
+          }
+
+          const body = {
+            appointmentId: apptId,
+            patientId: appt.patientId,
+            doctorId: appt.doctorId,
+            doctorName: appt.doctorName,
+            patientName: appt.patientName,
+            remarks,
+            medicines,
+          };
+
+          const res = await fetch("/api/prescriptions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          if (!res.ok) {
+            alert("Could not save prescription.");
+            return;
+          }
+
+          alert("Prescription saved.");
+          await loadPrescriptionForEdit();
+        } catch (e) {
+          console.error(e);
+          alert("Error saving prescription.");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const fromDoc = getFromDoctorId();
+        const dashLink = document.getElementById("edit-pres-dashboard-link");
+        if (dashLink) {
+          dashLink.href =
+            `doctor-dashboard.html?doctorId=${encodeURIComponent(fromDoc)}`;
+        }
+
+        loadPrescriptionForEdit();
+        document
+          .getElementById("save-pres-btn")
+          .addEventListener("click", savePrescription);
+      });
+    </script>
+  </body>
+</html>

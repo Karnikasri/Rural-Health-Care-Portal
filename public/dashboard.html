@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rural Health Care - Patient Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="patient-dashboard">
+    <!-- Top bar -->
+    <header class="top-bar">
+      <div class="logo-title">
+        <img
+          src="logo.png"
+          alt="Rural Health Care logo"
+          class="logo-img"
+        />
+        <span class="site-title">
+          <span class="site-title-rural">Rural</span> Health Care
+        </span>
+      </div>
+
+      <!-- Profile menu -->
+      <div class="top-right">
+        <nav class="nav-links">
+          <!-- Home + Appointments hrefs are set in JS with patientId -->
+          <a id="nav-home" href="#" class="nav-link active">Home</a>
+          <a id="nav-appointments" href="#" class="nav-link">Appointments</a>
+          <a href="index.html">Logout</a>
+        </nav>
+
+        <div class="user-menu">
+          <button class="user-icon-btn" onclick="toggleUserMenu()">
+            <span class="user-initials" id="user-initials">PT</span>
+          </button>
+          <div class="user-menu-dropdown" id="user-menu-dropdown">
+            <button type="button" onclick="openProfileModal()">View Profile</button>
+            <button type="button" onclick="openSettingsModal()">Settings</button>
+            <a href="index.html">Logout</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- Patient card -->
+      <section class="card patient-card">
+        <div class="avatar-placeholder"></div>
+        <h2 id="pd-name">Patient Name</h2>
+        <p class="muted" id="pd-age-gender">Age --, --</p>
+
+        <div class="contact-line" id="pd-phone">+--</div>
+        <div class="contact-line" id="pd-email">someone@example.com</div>
+
+        <!-- AI image chat -->
+        <div class="card ai-chat-card">
+          <div class="ai-chat-header">
+            <span class="ai-dot"></span>
+            <span class="ai-title">Image chat</span>
+          </div>
+
+          <label class="ai-file-label">
+            <span class="ai-file-text">Attach X‑ray or scan</span>
+            <input id="ai-image-file" type="file" accept="image/*" />
+          </label>
+
+          <div class="ai-input-row">
+            <input
+              id="ai-question"
+              type="text"
+              class="ai-chat-input"
+              placeholder="Ask something about this image..."
+            />
+            <button type="button" class="ai-send-btn" onclick="askAiAboutImage()">
+              Send
+            </button>
+          </div>
+
+          <div id="ai-answer" class="ai-chat-bubble" style="display: none;"></div>
+        </div>
+
+        <!-- Upload prescription -->
+        <button
+          class="primary-btn full"
+          onclick="document.getElementById('prescription-file').click()"
+        >
+          Upload Prescription
+        </button>
+        <input
+          type="file"
+          id="prescription-file"
+          accept="application/pdf,image/*"
+          style="display: none"
+          onchange="handlePrescriptionUpload(event)"
+        />
+      </section>
+
+      <!-- Appointments -->
+      <section class="card appointments-card">
+        <h2>My Appointments</h2>
+        <div id="pd-appointments"></div>
+      </section>
+
+      <!-- Medical history -->
+      <section class="card history-card">
+        <h2>Medical History</h2>
+        <div id="pd-history"></div>
+      </section>
+    </main>
+
+    <!-- Profile Modal (view) -->
+    <div
+      class="modal-backdrop"
+      id="profile-modal"
+      style="display: none"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Patient Profile</h2>
+          <button class="close-btn" onclick="closeProfileModal()">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>
+            <strong>Name</strong>
+            <span id="profile-name"></span>
+          </p>
+          <p>
+            <strong>Age &amp; Gender</strong>
+            <span id="profile-age-gender"></span>
+          </p>
+          <p>
+            <strong>Phone</strong>
+            <span id="profile-phone"></span>
+          </p>
+          <p>
+            <strong>Email</strong>
+            <span id="profile-email"></span>
+          </p>
+          <p>
+            <strong>Address</strong>
+            <span id="profile-address"></span>
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="secondary-btn" onclick="closeProfileModal()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal (edit profile) -->
+    <div
+      class="modal-backdrop"
+      id="settings-modal"
+      style="display: none"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Edit Profile</h2>
+          <button class="close-btn" onclick="closeSettingsModal()">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <label>Name</label>
+          <input class="text-input" id="settings-name" />
+
+          <label>Phone</label>
+          <input class="text-input" id="settings-phone" />
+
+          <label>Email</label>
+          <input class="text-input" id="settings-email" />
+
+          <label>Address</label>
+          <input class="text-input" id="settings-address" />
+
+          <!-- Age -->
+          <label>Age</label>
+          <input
+            class="text-input"
+            type="number"
+            id="settings-age"
+            min="0"
+          />
+
+          <!-- Gender -->
+          <label>Gender</label>
+          <select class="text-input" id="settings-gender">
+            <option value="">Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <label>Profile Picture</label>
+          <input
+            type="file"
+            accept="image/*"
+            id="settings-avatar"
+            onchange="handleProfileImageChange(event)"
+          />
+        </div>
+        <div class="modal-footer">
+          <button class="secondary-btn" onclick="closeSettingsModal()">
+            Cancel
+          </button>
+          <button class="primary-btn" onclick="saveSettings()">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shared dashboard modal (reschedule / details) -->
+    <div
+      class="modal-backdrop"
+      id="dash-modal"
+      style="display: none"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="dash-modal-title">Reschedule Appointment</h2>
+          <button class="close-btn" onclick="closeDashModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <p id="dash-modal-text"></p>
+          <div class="time-slot-container" id="dash-time-slots"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="secondary-btn" onclick="closeDashModal()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>

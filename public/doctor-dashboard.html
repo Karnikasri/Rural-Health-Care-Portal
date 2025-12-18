@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rural Health Care - Doctor Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="doctor-dashboard">
+    <!-- Top bar -->
+    <header class="top-bar">
+      <div class="logo-title">
+        <img src="logo.png" alt="Rural Health Care logo" class="logo-img" />
+        <span class="site-title">
+          <span class="site-title-rural">Rural</span> Health Care
+        </span>
+      </div>
+
+      <div class="top-right">
+        <nav class="nav-links">
+          <a id="doc-home-link" href="#" class="active">Home</a>
+          <a href="index.html">Logout</a>
+        </nav>
+        <div class="user-menu">
+          <button class="user-icon-btn">
+            <span class="user-initials">DR</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- Left: doctor info -->
+      <section class="card patient-card">
+        <div class="avatar-placeholder small"></div>
+        <h2 id="doc-name">Doctor Name</h2>
+        <p class="muted" id="doc-specialization">Specialization: --</p>
+        <div class="contact-line" id="doc-hospital">--</div>
+      </section>
+
+      <!-- Center: doctor's appointments -->
+      <section class="card appointments-card">
+        <h2>Doctor Dashboard</h2>
+        <p class="muted">View your patients and their prescriptions.</p>
+        <div id="doc-appointments"></div>
+      </section>
+
+      <!-- Right: patient prescriptions -->
+      <section class="card history-card">
+        <h2>Patient Prescriptions</h2>
+        <div id="doc-prescriptions"></div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="doc-modal" style="display: none">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="doc-modal-title">Appointment Details</h2>
+          <button class="close-btn" onclick="closeDocModal()">×</button>
+        </div>
+        <div class="modal-body" id="doc-modal-body"></div>
+        <div class="modal-footer" id="doc-modal-footer">
+          <button class="secondary-btn" onclick="closeDocModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function getDoctorIdFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("doctorId") || "D001";
+      }
+
+      let currentDoctorId = getDoctorIdFromQuery();
+      let currentPatientIdForPrescriptions = null;
+
+      async function loadDoctorDashboard() {
+        const doctorId = currentDoctorId;
+        const container = document.getElementById("doc-appointments");
+        container.textContent = "Loading...";
+
+        try {
+          const res = await fetch(`/api/doctors/${doctorId}/dashboard`);
+          if (!res.ok) throw new Error("doctor not found");
+          const data = await res.json();
+          const doctor = data.doctor || {};
+          const appts = data.appointments || [];
+
+          document.getElementById("doc-name").textContent =
+            doctor.name || "Doctor Name";
+          document.getElementById("doc-specialization").textContent =
+            "Specialization: " + (doctor.specialization || "--");
+          document.getElementById("doc-hospital").textContent =
+            doctor.hospital || "--";
+
+          const initialsSpan = document.querySelector(".user-initials");
+          if (initialsSpan && doctor.name) {
+            const parts = doctor.name.split(" ");
+            const initials =
+              (parts[0]?.[0] || "") + (parts[1]?.[0] || "");
+            initialsSpan.textContent = initials.toUpperCase();
+          }
+
+          renderDoctorAppointments(appts);
+        } catch (e) {
+          console.error(e);
+          container.textContent = "Could not load doctor data.";
+        }
+      }
+
+      function renderDoctorAppointments(list) {
+        const container = document.getElementById("doc-appointments");
+        if (!list.length) {
+          container.textContent = "No appointments.";
+          return;
+        }
+        container.innerHTML = "";
+
+        list.forEach((appt) => {
+          const block = document.createElement("div");
+          block.className = "appt-block";
+
+          const isUpcoming = appt.status === "upcoming";
+          const labelClass = isUpcoming ? "appt-label upcoming" : "appt-label";
+          const labelText = isUpcoming ? "Upcoming Appointment" : "Completed";
+
+          const completeBtnHtml = isUpcoming
+            ? `<button class="primary-btn"
+                   data-role="complete"
+                   data-appt="${appt.appointmentId}"
+                   data-patient="${appt.patientId}">
+                 Complete
+               </button>`
+            : "";
+
+          const editBtnHtml = isUpcoming
+            ? `<button class="secondary-btn"
+                   data-role="edit"
+                   data-appt="${appt.appointmentId}">
+                 Edit Prescription
+               </button>`
+            : "";
+
+          block.innerHTML = `
+            <p class="${labelClass}">
+              ${labelText}
+            </p>
+            <div class="appt-row">
+              <div>
+                <p class="doctor">${appt.patientName || "Patient"}</p>
+                <p class="muted">
+                  ${(appt.date || "") + " " + (appt.time || "")}
+                </p>
+              </div>
+              <div class="doctor-actions">
+                <button class="secondary-btn"
+                        data-role="prescription"
+                        data-appt="${appt.appointmentId}">
+                  View Prescription
+                </button>
+                ${editBtnHtml}
+                <button class="secondary-btn"
+                        data-role="history"
+                        data-patient="${appt.patientId}">
+                  View Medical History
+                </button>
+                ${completeBtnHtml}
+              </div>
+            </div>
+          `;
+          container.appendChild(block);
+        });
+
+        container.onclick = (e) => {
+          const btn = e.target.closest("button");
+          if (!btn) return;
+          const role = btn.getAttribute("data-role");
+          const apptId = btn.getAttribute("data-appt");
+          const patientId = btn.getAttribute("data-patient");
+
+          if (role === "prescription" && apptId) {
+            window.location.href =
+              `prescription.html?appointmentId=${encodeURIComponent(
+                apptId
+              )}&fromDoctorId=${encodeURIComponent(currentDoctorId)}`;
+          } else if (role === "edit" && apptId) {
+            window.location.href =
+              `edit-prescription.html?appointmentId=${encodeURIComponent(
+                apptId
+              )}&fromDoctorId=${encodeURIComponent(currentDoctorId)}`;
+          } else if (role === "history" && patientId) {
+            // stay on doctor dashboard, load patient history into right panel
+            currentPatientIdForPrescriptions = patientId;
+            loadPatientPrescriptions(patientId);
+          } else if (role === "complete" && apptId) {
+            completeAppointment(apptId, patientId);
+          }
+        };
+      }
+
+      async function completeAppointment(appointmentId, patientId) {
+        const summary = window.prompt("Enter quick summary for this visit:");
+        if (summary === null) return;
+
+        try {
+          const res = await fetch(
+            `/api/appointments/${appointmentId}/summary`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ summary }),
+            }
+          );
+
+          if (!res.ok) {
+            alert("Could not save summary.");
+            return;
+          }
+
+          alert("Summary saved.");
+          await loadDoctorDashboard();
+          if (patientId) {
+            currentPatientIdForPrescriptions = patientId;
+            loadPatientPrescriptions(patientId);
+          }
+        } catch (e) {
+          console.error(e);
+          alert("Error saving summary.");
+        }
+      }
+
+      async function loadPatientPrescriptions(patientId) {
+        const container = document.getElementById("doc-prescriptions");
+        container.innerHTML = "Loading...";
+
+        try {
+          const res = await fetch(
+            `/api/prescriptions/by-patient/${encodeURIComponent(patientId)}`
+          );
+          if (!res.ok) {
+            container.textContent = "No prescriptions found.";
+            return;
+          }
+
+          const list = await res.json();
+          if (!list.length) {
+            container.textContent = "No prescriptions found.";
+            return;
+          }
+
+          container.innerHTML = "";
+          list.forEach((p) => {
+            const div = document.createElement("div");
+            div.className = "history-item";
+
+            const created = p.createdAt
+              ? new Date(p.createdAt).toLocaleString()
+              : "";
+
+            div.innerHTML = `
+              <div class="history-header">
+                <span class="history-title">
+                  Prescription for ${p.appointmentId || ""}
+                </span>
+                <span class="muted small">${created}</span>
+              </div>
+              <p class="remarks-label">
+                ${(p.doctorName || "Doctor")}'s Remarks
+              </p>
+              <p class="muted">${p.remarks || "No remarks"}</p>
+              ${
+                p.fileUrl
+                  ? `<p class="muted">
+                       <a href="${p.fileUrl}" target="_blank">
+                         View uploaded file
+                       </a>
+                     </p>`
+                  : ""
+              }
+            `;
+            container.appendChild(div);
+          });
+        } catch (e) {
+          console.error(e);
+          container.textContent = "Could not load prescriptions.";
+        }
+      }
+
+      function closeDocModal() {
+        const modal = document.getElementById("doc-modal");
+        if (modal) modal.style.display = "none";
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const homeLink = document.getElementById("doc-home-link");
+        if (homeLink && currentDoctorId) {
+          homeLink.href =
+            `doctor-dashboard.html?doctorId=${encodeURIComponent(
+              currentDoctorId
+            )}`;
+        }
+        loadDoctorDashboard();
+      });
+    </script>
+  </body>
+</html>

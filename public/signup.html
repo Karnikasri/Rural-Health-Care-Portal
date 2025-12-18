@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rural Health Care - Sign Up</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="light-bg center-layout">
+  <div class="login-card">
+    <img src="logo.png" alt="Rural Health Care logo" class="logo-img big" />
+    <h1 class="title">Patient Sign Up</h1>
+
+    <form id="signup-form">
+      <label class="field-label">Full Name</label>
+      <input type="text" class="text-input" id="su-name" required />
+
+      <label class="field-label">Email</label>
+      <input type="email" class="text-input" id="su-email" required />
+
+      <label class="field-label">Phone</label>
+      <input type="text" class="text-input" id="su-phone" required />
+
+      <!-- Username will NOT be used as patientId; backend generates P005, P006, ... -->
+      <label class="field-label">Username</label>
+      <input type="text" class="text-input" id="su-username" required />
+
+      <label class="field-label">Password</label>
+      <div class="password-wrapper">
+        <input type="password" class="text-input" id="su-password" required />
+      </div>
+
+      <button type="submit" class="primary-btn full">Create Account</button>
+    </form>
+
+    <div class="login-footer">
+      <span class="muted">Already have an account?</span>
+      <a href="index.html" class="link-red">Login</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("signup-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const name = document.getElementById("su-name").value.trim();
+      const email = document.getElementById("su-email").value.trim();
+      const phone = document.getElementById("su-phone").value.trim();
+      const username = document.getElementById("su-username").value.trim();
+      const password = document.getElementById("su-password").value;
+
+      if (!name || !email || !phone || !username || !password) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      try {
+        // send to backend signup route (it will generate patientId: P005, P006, ...)
+        const res = await fetch("/api/signup/patient", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            age: 0,                 // you can add age field to the form later
+            gender: "",
+            phone,
+            email,
+            address: username,      // temporarily store username in address or adjust server.js
+            password
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || "Signup failed");
+          return;
+        }
+
+        const patientId = data.patientId;   // e.g. "P005"
+        alert("Account created. Your Patient ID is " + patientId);
+
+        // go directly to dashboard for this new patient
+        window.location.href =
+          "dashboard.html?patientId=" + encodeURIComponent(patientId);
+      } catch (err) {
+        console.error(err);
+        alert("Error during signup. Check server console.");
+      }
+    });
+  </script>
+</body>
+</html>

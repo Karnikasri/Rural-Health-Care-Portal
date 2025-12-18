@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rural Health Care - Prescription</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="light-bg">
+    <header class="top-bar">
+      <div class="logo-title">
+        <img src="logo.png" alt="Rural Health Care logo" class="logo-img" />
+        <span class="site-title">
+          <span class="site-title-rural">Rural</span> Health Care
+        </span>
+      </div>
+      <div class="top-right">
+        <nav class="nav-links">
+          <a id="pres-dashboard-link" href="#">Dashboard</a>
+          <a href="index.html">Logout</a>
+        </nav>
+        <div class="user-menu">
+          <button class="user-icon-btn">
+            <span class="user-initials">DR</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="prescription-page">
+      <div class="prescription-header-row">
+        <div>
+          <h1 class="prescription-title">Prescription Details</h1>
+          <p class="muted" id="prescription-header-text">
+            Patient: — | Date: —
+          </p>
+        </div>
+        <button class="primary-btn download-btn" onclick="window.print()">
+          ⬇ Download Prescription
+        </button>
+      </div>
+
+      <div class="prescription-grid">
+        <section class="card remarks-card">
+          <h2>Doctor's Remarks</h2>
+          <p class="prescription-text" id="prescription-remarks">
+            Loading...
+          </p>
+        </section>
+
+        <section class="card meds-card">
+          <h2>Prescribed Medication</h2>
+          <table class="meds-table">
+            <thead>
+              <tr>
+                <th>Medicine Name</th>
+                <th>Dosage</th>
+                <th>Instructions</th>
+              </tr>
+            </thead>
+            <tbody id="meds-body"></tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      function getQueryParam(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+      }
+
+      function getAppointmentIdFromQuery() {
+        return getQueryParam("appointmentId");
+      }
+
+      function getFromDoctorId() {
+        return getQueryParam("fromDoctorId") || "D001";
+      }
+
+      async function loadPrescriptionView() {
+        const apptId = getAppointmentIdFromQuery();
+        const headerEl = document.getElementById("prescription-header-text");
+        const remarksView = document.getElementById("prescription-remarks");
+        const medsBody = document.getElementById("meds-body");
+
+        medsBody.innerHTML = "";
+        remarksView.textContent = "Loading...";
+
+        if (!apptId) {
+          remarksView.textContent = "No appointment selected.";
+          headerEl.textContent = "Patient: — | Date: —";
+          return;
+        }
+
+        try {
+          const presRes = await fetch(
+            `/api/prescriptions/by-appointment/${apptId}`
+          );
+
+          let pres = null;
+          if (presRes.ok) {
+            pres = await presRes.json();
+          }
+
+          if (!pres) {
+            const apptRes = await fetch(`/api/appointments/${apptId}`);
+            if (!apptRes.ok) {
+              remarksView.textContent =
+                "No prescription found for this appointment.";
+              headerEl.textContent = "Patient: — | Date: —";
+            } else {
+              const appt = await apptRes.json();
+              headerEl.textContent = `Patient: ${
+                appt.patientName || "-"
+              } | Date: ${appt.date || "-"}`;
+              remarksView.textContent =
+                "No prescription found for this appointment.";
+            }
+
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td colspan='3' class='muted'>No medicines recorded.</td>";
+            medsBody.appendChild(tr);
+            return;
+          }
+
+          headerEl.textContent = `Patient: ${
+            pres.patientName || "-"
+          } | Date: ${
+            pres.date ||
+            new Date(pres.createdAt || Date.now()).toISOString().slice(0, 10)
+          }`;
+
+          remarksView.textContent =
+            pres.remarks ||
+            "No detailed remarks entered for this visit.";
+
+          const meds = pres.medicines || [];
+          if (!meds.length) {
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td colspan='3' class='muted'>No medicines recorded.</td>";
+            medsBody.appendChild(tr);
+          } else {
+            meds.forEach((m) => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${m.name || "-"}</td>
+                <td>${m.dosage || "-"}</td>
+                <td>${m.instructions || "-"}</td>
+              `;
+              medsBody.appendChild(tr);
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          remarksView.textContent = "Error loading prescription.";
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const fromDoc = getFromDoctorId();
+        const dashLink = document.getElementById("pres-dashboard-link");
+        if (dashLink) {
+          dashLink.href =
+            `doctor-dashboard.html?doctorId=${encodeURIComponent(fromDoc)}`;
+        }
+
+        loadPrescriptionView();
+      });
+    </script>
+  </body>
+</html>

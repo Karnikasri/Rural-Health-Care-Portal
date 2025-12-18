@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rural Health Care - Login</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="light-bg center-layout">
+    <div class="login-card">
+      <img
+        src="logo.png"
+        alt="Rural Health Care logo"
+        class="logo-img big"
+      />
+      <h1 class="title">Login As</h1>
+
+      <!-- Role tabs -->
+      <div class="role-tabs">
+        <button class="tab active" id="tab-patient">Patient</button>
+        <button class="tab" id="tab-doctor">Doctor</button>
+        <button class="tab" id="tab-admin">Admin</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="login-form">
+        <label class="field-label">Username</label>
+        <input
+          type="text"
+          class="text-input"
+          id="login-username"
+          placeholder="Enter your username"
+          required
+        />
+
+        <label class="field-label">Password</label>
+        <div class="password-wrapper">
+          <input
+            type="password"
+            id="password-input"
+            class="text-input"
+            placeholder="Enter your password"
+            required
+          />
+          <button
+            type="button"
+            class="eye-icon"
+            onclick="togglePasswordVisibility()"
+          >
+            👁️
+          </button>
+        </div>
+
+        <button type="submit" class="primary-btn full">Login</button>
+      </form>
+
+      <div class="login-footer">
+        <a href="#" id="forgot-link" class="link-red">Forgot Password?</a>
+        <a href="signup.html" id="signup-link" class="link-red">Sign Up</a>
+      </div>
+    </div>
+
+    <script>
+      // ===== role tabs =====
+      let currentRole = "patient";
+      const patientTab = document.getElementById("tab-patient");
+      const doctorTab = document.getElementById("tab-doctor");
+      const adminTab = document.getElementById("tab-admin");
+
+      const usernameInput = document.getElementById("login-username");
+      const passwordInput = document.getElementById("password-input");
+      const forgotLink = document.getElementById("forgot-link");
+      const signupLink = document.getElementById("signup-link");
+
+      function clearFields() {
+        if (usernameInput) usernameInput.value = "";
+        if (passwordInput) passwordInput.value = "";
+      }
+
+      // enable footer links only for patient role
+      function updateFooterLinks() {
+        const disabled = currentRole !== "patient";
+        if (disabled) {
+          forgotLink.classList.add("disabled");
+          signupLink.classList.add("disabled");
+        } else {
+          forgotLink.classList.remove("disabled");
+          signupLink.classList.remove("disabled");
+        }
+      }
+
+      function setActive(tab, role) {
+        currentRole = role;
+        [patientTab, doctorTab, adminTab].forEach((t) =>
+          t.classList.remove("active")
+        );
+        tab.classList.add("active");
+        clearFields();
+        updateFooterLinks();
+      }
+
+      patientTab.onclick = () => setActive(patientTab, "patient");
+      doctorTab.onclick = () => setActive(doctorTab, "doctor");
+      adminTab.onclick = () => setActive(adminTab, "admin");
+
+      // block clicks on links when not patient
+      forgotLink.addEventListener("click", (e) => {
+        if (currentRole !== "patient") {
+          e.preventDefault();
+        }
+      });
+      signupLink.addEventListener("click", (e) => {
+        if (currentRole !== "patient") {
+          e.preventDefault();
+        }
+      });
+
+      // initial state
+      updateFooterLinks();
+
+      // ===== eye icon for password =====
+      function togglePasswordVisibility() {
+        const input = document.getElementById("password-input");
+        if (!input) return;
+        input.type = input.type === "password" ? "text" : "password";
+      }
+      window.togglePasswordVisibility = togglePasswordVisibility;
+
+      // ===== login handler (patient + doctor + admin) =====
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const username = usernameInput.value.trim();
+          const password = passwordInput.value.trim();
+
+          // --- PATIENT LOGIN ---
+          if (currentRole === "patient") {
+            if (!username || !password) {
+              alert("Please enter Patient ID and password.");
+              return;
+            }
+
+            try {
+              const res = await fetch("/api/login/patient", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  username, // patientId like "P005"
+                  password,
+                }),
+              });
+
+              const data = await res.json();
+              if (!res.ok) {
+                alert(data.error || "Patient login failed.");
+                clearFields();
+                return;
+              }
+
+              const patientId = data.patientId;
+              window.location.href =
+                "dashboard.html?patientId=" +
+                encodeURIComponent(patientId);
+            } catch (err) {
+              console.error(err);
+              alert("Error during patient login.");
+              clearFields();
+            }
+            return;
+          }
+
+          // --- DOCTOR LOGIN ---
+          if (currentRole === "doctor") {
+            try {
+              const res = await fetch("/api/login/doctor", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+              });
+
+              const data = await res.json();
+              if (!res.ok) {
+                alert(data.error || "Doctor login failed.");
+                clearFields();
+                return;
+              }
+
+              const doctorId = data.doctorId;
+              window.location.href =
+                "doctor-dashboard.html?doctorId=" +
+                encodeURIComponent(doctorId);
+            } catch (err) {
+              console.error(err);
+              alert("Error during doctor login.");
+              clearFields();
+            }
+            return;
+          }
+
+          // --- ADMIN LOGIN (hard‑coded on server) ---
+          if (currentRole === "admin") {
+            try {
+              const res = await fetch("/api/login/admin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+              });
+
+              const data = await res.json();
+              if (!res.ok) {
+                alert(data.error || "Admin login failed.");
+                clearFields();
+                return;
+              }
+
+              // success – go to admin doctors UI
+              window.location.href = "admin-doctors.html";
+            } catch (err) {
+              console.error(err);
+              alert("Error during admin login.");
+              clearFields();
+            }
+          }
+        });
+    </script>
+  </body>
+</html>
