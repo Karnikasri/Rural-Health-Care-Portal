@@ -84,7 +84,7 @@ app.listen(PORT, () => {
 
 
 // ===== MONGODB CONNECTION (Atlas URI from your project) =====
-const MONGOURI = 'mongodb+srv://hospital_user:Karnika%402005@rural.qhlp81d.mongodb.net/?appName=Rural';
+const MONGOURI = 'mongodb+srv://hospital_user:<password>@rural.qhlp81d.mongodb.net/?appName=Rural';
 mongoose
   .connect(MONGOURI)
   .then(() => console.log("MongoDB connected (Atlas)"))
