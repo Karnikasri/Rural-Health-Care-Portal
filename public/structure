@@ -1,0 +1,20 @@
+.
+├── public/
+│   ├── index.html              # Login (Patient / Doctor / Admin)
+│   ├── signup.html             # Patient signup
+│   ├── dashboard.html          # Patient dashboard
+│   ├── book.html               # Patient appointment booking
+│   ├── doctor-dashboard.html   # Doctor dashboard
+│   ├── prescription.html       # Prescription view
+│   ├── admin-doctors.html      # Admin doctor management
+│   ├── flow.html               # Patient journey page (static)
+│   ├── profile-settings.html   # Profile settings modal template
+│   ├── style.css               # Global styles
+│   ├── main.js                 # Frontend logic (dashboard, booking, AI, etc.)
+│   └── logo.png                # App logo
+├── uploads/                    # Uploaded files (prescription scans, AI images)
+├── server.js                   # Express server and APIs
+├── email-reminders.js          # Nodemailer helper for reminder emails
+├── key.env                     # Environment variables (API keys, DB URI, SMTP)
+└── package.json
+
