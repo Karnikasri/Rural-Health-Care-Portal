@@ -1,6 +1,6 @@
 # Rural Health Care – Web App
 
-A simple full‑stack web application for managing rural healthcare appointments. Patients can register, log in, maintain their profile, book appointments with doctors, and view prescriptions. Doctors can log in to manage appointments and prescriptions, and an admin panel manages doctors, demo data, and email reminders.[1]
+A simple full‑stack web application for managing rural healthcare appointments. Patients can register, log in, maintain their profile, book appointments with doctors, and view prescriptions. Doctors can log in to manage appointments and prescriptions, and an admin panel manages doctors, demo data, and email reminders.
 
 ## Features
 
